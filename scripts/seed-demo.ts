@@ -130,7 +130,12 @@ async function outcome(leadId: string, callAt: Date) {
   if (!l) return;
   const after = (m: number) => new Date(new Date(l.created_at as string).getTime() + m * 60_000);
   if (l.status === "sent_to_designer" && Math.random() < 0.82) {
-    const acceptAt = after(rnd(2, 38));
+    // The designer can only accept after the alert LANDED. For after-hours calls that is the next morning (quiet hours),
+    // so find when the alert was due and, in this simulated history, treat it as sent then.
+    const { data: alert } = await db.from("notifications").select("id, scheduled_for, sent_at").eq("lead_id", leadId).eq("type", "lead_assigned").limit(1).maybeSingle();
+    const alertAt = new Date((alert?.sent_at ?? alert?.scheduled_for ?? l.created_at) as string);
+    if (alert && !alert.sent_at) await db.from("notifications").update({ sent_at: alertAt.toISOString(), delivered: true, cancelled_at: null, error: null }).eq("id", alert.id);
+    const acceptAt = new Date(alertAt.getTime() + rnd(2, 38) * 60_000);
     const contacted = Math.random() < 0.8;
     const late = Math.random() < 0.2;
     const roll = Math.random();
@@ -139,7 +144,7 @@ async function outcome(leadId: string, callAt: Date) {
     await db.from("leads").update({
       status, accepted_at: acceptAt.toISOString(),
       first_response_at: contacted ? new Date(late ? due.getTime() + rnd(5, 90) * 60_000 : Math.min(due.getTime() - 60_000, acceptAt.getTime() + rnd(5, 40) * 60_000)).toISOString() : null,
-      outcome_at: status === "won" || status === "lost" ? after(rnd(3000, 20000)).toISOString() : null,
+      outcome_at: status === "won" || status === "lost" ? new Date(acceptAt.getTime() + rnd(3000, 20000) * 60_000).toISOString() : null,
     }).eq("id", leadId);
     await db.from("notifications").update({ acted_at: acceptAt.toISOString() }).eq("lead_id", leadId).eq("type", "lead_assigned");
     const r = Math.random();
