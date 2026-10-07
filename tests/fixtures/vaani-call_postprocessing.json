@@ -1,0 +1,16 @@
+{
+  "event": "call_postprocessing",
+  "call_id": "inbound-1784899978-36cec598",
+  "timestamp": "2026-09-16T06:54:30.278854+00:00",
+  "data": {
+    "room_name": "inbound-1784899978-36cec598",
+    "call_id": "inbound-1784899978-36cec598",
+    "call_duration": 330150.02,
+    "end_reason": "Call ended",
+    "summary": "Caller enquired about a 3BHK redesign in Aundh.",
+    "entities": {},
+    "dispositions": {},
+    "recording_url": "https://api.vaanivoice.ai/api/stream/inbound-1784899978-36cec598",
+    "transcript": "[12:19:14] AGENT: Hello, Aangan Studio. How can I help?\n\n[12:19:19] USER: Hi, I have a 3BHK in Aundh, about 1,100 sq ft. I want to redo the kitchen, wardrobes and living room.\n\n[12:19:40] AGENT: Lovely. When would you like to start?"
+  }
+}

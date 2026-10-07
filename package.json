@@ -1,0 +1,47 @@
+{
+  "name": "aangan-enquiry",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "eval": "tsx scripts/eval.ts",
+    "telegram:setup": "tsx scripts/telegram-setup.ts",
+    "simulate": "tsx --conditions=react-server scripts/simulate.ts",
+    "hubspot:check": "tsx scripts/hubspot-check.ts",
+    "vaani:setup": "tsx scripts/vaani-setup.ts",
+    "webhook:replay": "tsx scripts/replay-webhook.ts",
+    "staff:create": "tsx scripts/create-staff.ts",
+    "seed:demo": "tsx --conditions=react-server scripts/seed-demo.ts",
+    "db:migrate": "tsx scripts/db-migrate.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
+    "@google/genai": "^2.27.0",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.2",
+    "googleapis": "^183.0.0",
+    "next": "16.4.0",
+    "pg": "^8.23.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.1",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^18.0.6",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.0.3"
+  }
+}
