@@ -37,10 +37,10 @@ export async function routeLead(db: SupabaseClient, deps: Deps, leadId: string) 
 
   const { data: bookings } = await db.from("bookings").select("*").eq("lead_id", leadId).in("status", ["provisional", "confirmed"]);
   let booking = bookings?.[0] ?? null;
-  if (!booking && deps.booking && call) {
+  if (!booking && call) {
     // Vaani booked straight into Cal.com during the call; find that booking. A scheduler outage must not stop routing.
     try {
-      booking = await linkBookingToCall(db, deps.booking, call, leadId);
+      booking = await linkBookingToCall(db, deps.booking ?? null, call, leadId, now);
     } catch (e) {
       console.error("link booking failed", leadId, e instanceof Error ? e.message : e);
     }

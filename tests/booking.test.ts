@@ -158,6 +158,58 @@ describe("linking a booking Vaani made natively in Cal.com", () => {
   });
 });
 
+describe("bookings made by our own book_slot tool (no call id known)", () => {
+  const call = { id: "c1", external_id: "vc1", caller_phone: "+919876543210", started_at: ist("2026-09-16T12:10:00").toISOString(), ended_at: ist("2026-09-16T12:16:00").toISOString(), duration_sec: 360 };
+  const book = async (m: ReturnType<typeof make>, phone = "+919876543210") => {
+    const [slot] = await offerSlots(m.db, m.provider, NOW);
+    return { slot, r: await bookSlot(m.db, m.provider, { vaaniCallId: "tool-xyz", start: slot, name: "Priya", phone }) };
+  };
+
+  it("a retried tool call (new generated call id, same caller and slot) does not double-book", async () => {
+    const m = make();
+    const { slot } = await book(m);
+    const again = await bookSlot(m.db, m.provider, { vaaniCallId: "tool-other-id", start: slot, name: "Priya", phone: "+919876543210" });
+    expect(again).toMatchObject({ ok: true, duplicate: true });
+    expect(m.provider.all).toHaveLength(1);
+    expect(m.tables.bookings).toHaveLength(1);
+  });
+
+  it("after the call, the booking in OUR table is attached to the call and lead (no second row, no Cal.com lookup needed)", async () => {
+    const m = make();
+    m.tables.bookings.length = 0;
+    await book(m);
+    m.tables.bookings[0].created_at = ist("2026-09-16T12:13:00").toISOString();
+    const b = await linkBookingToCall(m.db, null, call, "L1", ist("2026-09-16T12:17:00"));
+    expect(b).toMatchObject({ lead_id: "L1", call_id: "c1" });
+    expect(m.tables.bookings).toHaveLength(1);
+    expect(m.tables.bookings[0]).toMatchObject({ vaani_call_id: "vc1", lead_id: "L1" });
+  });
+
+  it("still links when the call timestamps are off (wrong timezone assumption): a booking just before the webhook counts", async () => {
+    const m = make();
+    await book(m);
+    m.tables.bookings[0].created_at = ist("2026-09-16T12:14:00").toISOString();
+    const skewed = { ...call, started_at: ist("2026-09-16T17:40:00").toISOString(), ended_at: ist("2026-09-16T17:46:00").toISOString() }; // 5.5h out
+    expect(await linkBookingToCall(m.db, null, skewed, "L1", ist("2026-09-16T12:17:00"))).toMatchObject({ lead_id: "L1" });
+  });
+
+  it("with two plausible bookings it uses the phone number, and with no way to tell them apart it links nothing", async () => {
+    const m = make();
+    await book(m, "+919111111111");
+    const [, second] = await offerSlots(m.db, m.provider, NOW);
+    await bookSlot(m.db, m.provider, { vaaniCallId: "tool-b", start: second, name: "Priya", phone: "+919876543210" });
+    m.tables.bookings.forEach((b) => (b.created_at = ist("2026-09-16T12:13:00").toISOString()));
+    const picked = await linkBookingToCall(m.db, null, call, "L1", ist("2026-09-16T12:17:00"));
+    expect(picked?.caller_phone).toBe("+919876543210");
+    const n = make();
+    await book(n, "+919111111111");
+    const [, s2] = await offerSlots(n.db, n.provider, NOW);
+    await bookSlot(n.db, n.provider, { vaaniCallId: "tool-b", start: s2, name: "X", phone: "+919222222222" });
+    n.tables.bookings.forEach((b) => (b.created_at = ist("2026-09-16T12:13:00").toISOString()));
+    expect(await linkBookingToCall(n.db, null, call, "L1", ist("2026-09-16T12:17:00"))).toBeNull();
+  });
+});
+
 describe("end to end: Vaani books in Cal.com, then the call is routed", () => {
   beforeEach(() => {
     process.env.TELEGRAM_FRONTDESK_CHAT_ID = "FD";

@@ -14,14 +14,9 @@ import { AGENT_NAME, buildAgentConfig, buildSystemPrompt, loadAgentPrompt } from
 const dry = process.argv.includes("--dry-run");
 const key = process.env.VAANI_API_KEY;
 const email = process.env.CALCOM_ATTENDEE_EMAIL;
-if (!email) {
-  console.error("CALCOM_ATTENDEE_EMAIL is not set in .env.local (the agent uses it when a caller has no email).");
-  process.exit(1);
-}
-const prompt = buildSystemPrompt(loadAgentPrompt(), { fallbackEmail: email, smsLive: process.argv.includes("--sms-live") });
+const prompt = buildSystemPrompt(loadAgentPrompt(), { fallbackEmail: email ?? "", smsLive: process.argv.includes("--sms-live") });
 const cfg = buildAgentConfig(prompt);
 
-if (/FALLBACK_EMAIL_HERE/.test(prompt)) throw new Error("placeholder left in the prompt");
 if (dry) {
   console.log(`Agent name: ${AGENT_NAME}\nPrompt: ${prompt.length} characters, ${prompt.split(/\s+/).length} words\n`);
   console.log(JSON.stringify({ ...cfg, persona: { ...cfg.persona, identity: { ...cfg.persona.identity, system_prompt: `<${prompt.length} chars: see prompts/vaani-agent.md>` } } }, null, 2));

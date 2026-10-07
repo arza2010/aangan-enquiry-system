@@ -33,7 +33,10 @@ export async function bookSlot(
   a: { vaaniCallId: string; start: string; name: string; phone: string },
 ): Promise<BookResult> {
   const start = new Date(a.start).toISOString();
-  const { data: existing } = await db.from("bookings").select("*").eq("vaani_call_id", a.vaaniCallId).eq("slot_start", start).in("status", ["provisional", "confirmed"]).maybeSingle();
+  const { data: byCall } = await db.from("bookings").select("*").eq("vaani_call_id", a.vaaniCallId).eq("slot_start", start).in("status", ["provisional", "confirmed"]).maybeSingle();
+  // A retried tool call carries a fresh generated call id, so the same caller + slot also counts as "the same booking".
+  const { data: byPhone } = byCall ? { data: null } : await db.from("bookings").select("*").eq("caller_phone", a.phone).eq("slot_start", start).in("status", ["provisional", "confirmed"]).maybeSingle();
+  const existing = byCall ?? byPhone;
   if (existing) return { ok: true, duplicate: true, booking: { id: existing.id, slot_start: existing.slot_start, slot_end: existing.slot_end } };
 
   let made: { uid: string; start: string; end: string };
@@ -60,9 +63,10 @@ export async function bookSlot(
  * only links when exactly one booking falls in the window (never guesses between two callers).
  */
 export async function linkBookingToCall(
-  db: SupabaseClient, provider: BookingProvider,
+  db: SupabaseClient, provider: BookingProvider | null,
   call: { id: string; external_id: string; caller_phone: string; started_at: string; ended_at: string | null; duration_sec: number | null },
   leadId: string,
+  now: Date = new Date(),
 ) {
   const { data: have } = await db.from("bookings").select("*").eq("vaani_call_id", call.external_id).in("status", ["provisional", "confirmed"]);
   if (have?.length) {
@@ -71,6 +75,25 @@ export async function linkBookingToCall(
   }
   const start = new Date(call.started_at);
   const end = call.ended_at ? new Date(call.ended_at) : addMinutes(start, Math.ceil((call.duration_sec ?? 300) / 60));
+
+  // 1) A booking our own book_slot tool made mid-call: it is in OUR table, not yet tied to a call or lead.
+  // Belt and braces: Vaani's call-history timestamps are undocumented (UTC assumed), so a booking made in the 20 minutes before
+  // this webhook arrived also counts. Calls are analysed within a minute of ending, so that is the same call.
+  const lo = new Date(Math.min(addMinutes(start, -2).getTime(), addMinutes(now, -20).getTime()));
+  const hi = new Date(Math.max(addMinutes(end, 3).getTime(), now.getTime()));
+  const inWindow = (iso: string) => { const t = new Date(iso).getTime(); return (t >= addMinutes(start, -2).getTime() && t <= addMinutes(end, 3).getTime()) || (t >= addMinutes(now, -20).getTime() && t <= now.getTime()); };
+  const { data: ownAll } = await db.from("bookings").select("*").is("lead_id", null).in("status", ["provisional", "confirmed"]).gte("created_at", lo.toISOString()).lte("created_at", hi.toISOString());
+  const own = (ownAll ?? []).filter((b) => inWindow(b.created_at as string));
+  const last10 = (p?: string | null) => (p ?? "").replace(/\D/g, "").slice(-10);
+  const ownByPhone = (own ?? []).filter((b) => last10(b.caller_phone) && last10(b.caller_phone) === last10(call.caller_phone));
+  const ownPick = ownByPhone.length === 1 ? ownByPhone[0] : (own ?? []).length === 1 ? own![0] : null;
+  if (ownPick) {
+    await db.from("bookings").update({ call_id: call.id, lead_id: leadId, vaani_call_id: call.external_id }).eq("id", ownPick.id);
+    return { ...ownPick, call_id: call.id, lead_id: leadId };
+  }
+
+  // 2) Otherwise a booking Vaani made natively in Cal.com.
+  if (!provider) return null;
   const found = (await provider.listCreatedBetween(addMinutes(start, -2).toISOString(), addMinutes(end, 3).toISOString())).filter((b) => b.status !== "cancelled" && b.status !== "rejected");
   const digits = (p?: string) => (p ?? "").replace(/\D/g, "").slice(-10);
   const byPhone = found.filter((b) => digits(b.attendeePhone) && digits(b.attendeePhone) === digits(call.caller_phone));

@@ -4,9 +4,11 @@ import { hasPriceLeak } from "@/lib/ai/priceGuard";
 
 describe("vaani agent setup", () => {
   const raw = loadAgentPrompt();
-  it("fills the fallback email and leaves no placeholder", () => {
-    const p = buildSystemPrompt(raw, { fallbackEmail: "inbox@x.com", smsLive: true });
-    expect(p).toContain("inbox@x.com");
+  it("tells the agent to use our two booking tools and never to ask for an email", () => {
+    const p = buildSystemPrompt(raw, { fallbackEmail: "", smsLive: true });
+    expect(p).toContain("check_availability");
+    expect(p).toContain("book_slot");
+    expect(p).toMatch(/Never ask for one/);
     expect(p).not.toContain("FALLBACK_EMAIL_HERE");
   });
   it("does not promise a confirmation message until SMS is live", () => {
