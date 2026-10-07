@@ -62,6 +62,12 @@ async function main() {
     ]);
   }
 
+  // The silent Telegram client needs a destination for designer alerts to count as "sent" (that is what the dashboard measures).
+  // Remember which designers had none, and put them back afterwards so the live scheduler never targets a fake chat.
+  const { data: noChat } = await db.from("designers").select("id").is("telegram_chat_id", null);
+  const fakeChatIds = (noChat ?? []).map((d) => d.id as string);
+  for (const id of fakeChatIds) await db.from("designers").update({ telegram_chat_id: `demo-${id}` }).eq("id", id);
+
   const files: { id: string; text: string }[] = [];
   for (const dir of ["phone", "synthetic"]) {
     const d = join(process.cwd(), "context", "transcripts", dir);
@@ -81,7 +87,7 @@ async function main() {
     if (at.getTime() > Date.now() - 3600_000) { done++; continue; }
 
     let clock = at;
-    const calendar = mockProvider({ now: () => clock });
+    const calendar = mockProvider({ now: () => clock, uidPrefix: `demo${j.n}-${Date.now()}` }); // unique ids: the database enforces uniqueness per booking
     const deps: Deps = {
       now: () => clock, crm: null, booking: calendar,
       telegram: { send: async () => ({ message_id: 1 }), answerCallback: async () => {}, editMessage: async () => {} },
@@ -109,6 +115,7 @@ async function main() {
     }
     process.stdout.write(`\r${++done}/${jobs.length}`);
   }
+  for (const id of fakeChatIds) await db.from("designers").update({ telegram_chat_id: null }).eq("id", id);
   // Safety: nothing from the demo may ever be sent by the live scheduler.
   const { data: leads } = await db.from("calls").select("id").like("external_id", "demo-%");
   const callIds = (leads ?? []).map((c) => c.id as string);

@@ -2,7 +2,7 @@ import type { BookingProvider, ProviderBooking } from "./types";
 import { istDate, istParts, isWorkingTime, type Hours } from "@/lib/time";
 
 /** In-memory Cal.com stand-in for tests and the simulator: 30-min grid inside working hours, one consult at a time. */
-export function mockProvider(opts: { now: () => Date; hours?: Hours; days?: number[] }): BookingProvider & { all: ProviderBooking[] } {
+export function mockProvider(opts: { now: () => Date; hours?: Hours; days?: number[]; uidPrefix?: string }): BookingProvider & { all: ProviderBooking[] } {
   const hours = opts.hours ?? { start: "10:00", end: "19:00" };
   const days = opts.days ?? [1, 2, 3, 4, 5, 6];
   const all: ProviderBooking[] = [];
@@ -28,7 +28,7 @@ export function mockProvider(opts: { now: () => Date; hours?: Hours; days?: numb
       const iso = new Date(start).toISOString();
       if (taken(iso)) throw new Error("Cal.com POST /bookings -> 400: slot no longer available");
       const b: ProviderBooking = {
-        uid: `mock-${++n}`, start: iso, end: new Date(new Date(iso).getTime() + 20 * 60_000).toISOString(),
+        uid: `${opts.uidPrefix ?? "mock"}-${++n}`, start: iso, end: new Date(new Date(iso).getTime() + 20 * 60_000).toISOString(),
         status: "accepted", createdAt: opts.now().toISOString(), attendeeName: name, attendeePhone: phone,
       };
       all.push(b);
