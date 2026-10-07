@@ -4,7 +4,7 @@ Order matters. Do each part, then run its check before moving on.
 
 ## 1. Supabase (database + staff login)
 1. supabase.com > New project (free). Save the database password. Region: Mumbai if offered.
-2. SQL Editor > run, in order, each file in `supabase/migrations/` (0001 ... 0006), then `supabase/seed.sql`.
+2. Either `npm run db:migrate` (needs SUPABASE_DB_URL), or paste the single file `supabase/all-in-one.sql` into SQL Editor and run it once.
 3. Project Settings > API: copy **Project URL**, **anon key**, **service_role key**.
 4. Authentication > Providers > Email: turn **off** "Confirm email" (simplest for a pilot) and turn **off** "Allow new users to sign up".
 5. Put the three values in `.env.local` as `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
