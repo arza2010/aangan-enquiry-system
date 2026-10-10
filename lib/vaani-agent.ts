@@ -5,8 +5,18 @@ export const AGENT_NAME = "Aangan Studio";
 export const GREETING = "Hello, Aangan Studio. How can I help you today?";
 
 /** The prompt file plus the two things only the operator knows. Pure, so it is unit-tested. */
-export function buildSystemPrompt(raw: string, opts: { fallbackEmail: string; smsLive: boolean }): string {
+const CALLBACK_ONLY = `# Next step: a designer callback
+You cannot book calendar slots on this line, so never offer, name or promise a specific appointment time, and never pretend to book anything.
+When you have the basics, say a designer will call them back: within the hour while the studio is open (10 am to 7 pm, Monday to Saturday), or by 11 the next working morning if it is closed.
+Ask what number the designer should call them on (confirm it by repeating it) and whether a time of day suits them best, morning, afternoon or evening, and note it for the designer.
+Never promise a particular designer, and never promise a site visit; a designer decides that at the consultation.
+
+`;
+
+export function buildSystemPrompt(raw: string, opts: { fallbackEmail: string; smsLive: boolean; booking?: boolean }): string {
   let p = raw.replace(/FALLBACK_EMAIL_HERE/g, opts.fallbackEmail);
+  // Without working booking tools the agent must not talk about booking at all, or it will invent one.
+  if (opts.booking === false) p = p.replace(/# Booking the consultation[\s\S]*?(?=# Special situations)/, CALLBACK_ONLY);
   // Until a real SMS provider is connected the agent must not promise a text message the caller will never get.
   if (!opts.smsLive) p = p.replace(/, and tell them they will get a confirmation message shortly/, "");
   return p.trim();

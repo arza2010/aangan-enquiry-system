@@ -11,6 +11,16 @@ describe("vaani agent setup", () => {
     expect(p).toMatch(/Never ask for one/);
     expect(p).not.toContain("FALLBACK_EMAIL_HERE");
   });
+  it("--no-booking mode: the agent only promises a callback and never mentions the booking tools", () => {
+    const p = buildSystemPrompt(raw, { fallbackEmail: "", smsLive: false, booking: false });
+    expect(p).not.toMatch(/check_availability|book_slot/);
+    expect(p).toMatch(/cannot book calendar slots/);
+    expect(p).toMatch(/never pretend to book/i);
+    expect(p).toMatch(/# Special situations/); // later sections survive the swap
+    expect(p).toMatch(/# Closing/);
+    expect(p).toMatch(/never give any price/i);
+  });
+
   it("does not promise a confirmation message until SMS is live", () => {
     expect(buildSystemPrompt(raw, { fallbackEmail: "a@b.c", smsLive: false })).not.toMatch(/confirmation message/);
     expect(buildSystemPrompt(raw, { fallbackEmail: "a@b.c", smsLive: true })).toMatch(/confirmation message/);

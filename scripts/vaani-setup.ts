@@ -2,6 +2,7 @@
  * Create (or update) the "Aangan Studio" voice agent in Vaani from prompts/vaani-agent.md.
  *   npm run vaani:setup -- --dry-run     show exactly what would be sent, change nothing
  *   npm run vaani:setup                  create the agent, or update it if one with this name already exists
+ *   add --no-booking if the booking tools are not set up in Vaani: the agent then only promises a callback window
  *   add --sms-live once a real SMS provider is connected (keeps the "you'll get a confirmation message" line)
  *
  * NOT done here, on purpose: pasting the Cal.com key into Vaani and provisioning a phone number. Both are done by you
@@ -14,7 +15,7 @@ import { AGENT_NAME, buildAgentConfig, buildSystemPrompt, loadAgentPrompt } from
 const dry = process.argv.includes("--dry-run");
 const key = process.env.VAANI_API_KEY;
 const email = process.env.CALCOM_ATTENDEE_EMAIL;
-const prompt = buildSystemPrompt(loadAgentPrompt(), { fallbackEmail: email ?? "", smsLive: process.argv.includes("--sms-live") });
+const prompt = buildSystemPrompt(loadAgentPrompt(), { fallbackEmail: email ?? "", smsLive: process.argv.includes("--sms-live"), booking: !process.argv.includes("--no-booking") });
 const cfg = buildAgentConfig(prompt);
 
 if (dry) {

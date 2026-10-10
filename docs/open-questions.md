@@ -92,3 +92,10 @@ simulator, webhook replay, demo seed, deploy guide.
 
 **Not built, by decision (assignment scope, ~20 days):** real SMS provider (simulated), carrier call-forwarding, real designers (simulated), fallback
 post-call booking, per-designer calendars, WhatsApp / web form (see docs/extending-channels.md).
+
+## Vaani account issue (10 Oct 2026)
+
+| # | Item | Status |
+|---|---|---|
+| 42 | Vaani's `GET /api/call-history` fails for this account: `Error fetching call history: 400: Invalid client_id format`, with the account's organisation name "Harsha Vardan" (a space) in the failing path. The profile fields are read-only, so it cannot be renamed. The dashboard's "Failed to save custom tool" is probably the same cause (unproven). Consequence: our webhook cannot look up the caller's number, so calls arrive as "unknown number" and are flagged for review. Options: ask Vaani support to fix the organisation id, or sign up a new Vaani account with a one-word organisation name. | open |
+| 43 | Until custom tools can be saved, the agent runs in callback-only mode: `npm run vaani:setup -- --no-booking` (promises a callback window, never pretends to book). Re-run `npm run vaani:setup` (without the flag) once the two tools exist. The booking endpoints stay built and tested, and are exercised by `webhook:replay`. | workaround active |
