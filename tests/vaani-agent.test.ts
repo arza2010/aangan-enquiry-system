@@ -34,6 +34,8 @@ describe("vaani agent setup", () => {
     const c = buildAgentConfig("PROMPT");
     expect(c.persona.identity.greeting_message.agent_message).toBe("Hello, Aangan Studio. How can I help you today?");
     expect(c.persona.senses_capabilities).toMatchObject({ language: "en", auto_detect: true });
+    expect(c.persona.senses_capabilities.brain.llm.fallback.provider).not.toBe("azure"); // disabled by Vaani
+    expect(c.persona.senses_capabilities.brain.llm.primary.model).toContain("lite"); // fast model: Vaani hangs up after 15 s of thinking
     expect(c.experience.settings.call_settings.max_call_duration).toBe(6);
     expect(c.experience.settings.idle_conversation_settings.initial_idle_call_hungup_timeout).toBeGreaterThanOrEqual(30); // Vaani default is 10 s
     expect(c.experience.settings.vad_watcher.max_consecutive_noise).toBeGreaterThan(3);
