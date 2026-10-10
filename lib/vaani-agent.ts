@@ -33,11 +33,11 @@ export function buildAgentConfig(systemPrompt: string) {
       senses_capabilities: {
         language: "en",
         auto_detect: true,
-        // Vaani's default backup model is Azure gpt-4o, which Vaani has globally DISABLED. Any hiccup on the primary then killed
+        // Vaani default backup model is Azure gpt-4o, which Vaani has globally DISABLED (and the backup must be a DIFFERENT provider from the primary). Any hiccup on the primary then killed
         // the call, and the agent config could not even be saved ("Provider 'azure' has been globally disabled").
         // Fast primary model: Vaani's default (gemini-3.5-flash) took 5-14 s per turn on this prompt, and Vaani's watcher hangs up
         // after 15 s of "thinking" (not configurable via the API). Short spoken replies need no more than 300 tokens.
-        brain: { llm: { primary: { provider: "google", model: "gemini-3.5-flash-lite", parameters: { temperature: 0.5, top_p: 1, max_tokens: 300 } }, fallback: { provider: "google", model: "gemini-3.5-flash", parameters: { temperature: 0.7, top_p: 1, max_tokens: 500 } } } },
+        brain: { llm: { primary: { provider: "google", model: "gemini-3.5-flash-lite", parameters: { temperature: 0.5, top_p: 1, max_tokens: 300 } }, fallback: { provider: "openai", model: "gpt-4o-mini", parameters: { temperature: 0.5, top_p: 1, max_tokens: 300 } } } },
       },
     },
     experience: {

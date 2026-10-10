@@ -77,6 +77,15 @@ export function cleanTranscript(t: string): string {
     .join("\n");
 }
 
+/**
+ * Vaani's docs say `call_postprocessing.call_duration` is in MILLISECONDS (their example: 55150), but real payloads send
+ * SECONDS (we received 146.8 for a 2m26s call). Anything under an hour's worth of seconds is read as seconds; larger values
+ * are milliseconds. Only a sub-4-second call would be ambiguous, and those are not worth costing.
+ */
+export function secondsFromVaaniDuration(v: number): number {
+  return v < 3600 ? Math.round(v) : Math.round(v / 1000);
+}
+
 export const UNKNOWN_PHONE = "unknown";
 
 /** If a payload already carries the caller's number (test replays; possibly Vaani later), we need no call-history lookup. */
@@ -96,7 +105,7 @@ export function normaliseVaani(raw: unknown, meta?: VaaniCallMeta | null): Norma
   const endedAt = p.timestamp ? asUtc(p.timestamp) : new Date();
   const durationSec =
     p.data.call_duration != null
-      ? Math.round(p.data.call_duration / 1000)
+      ? secondsFromVaaniDuration(p.data.call_duration)
       : meta?.duration_ms != null
         ? Math.round(meta.duration_ms / 1000)
         : null;

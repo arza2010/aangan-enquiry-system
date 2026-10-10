@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { cleanTranscript, inlinePhone, normaliseVaani, vaaniEventName, verifyWebhookToken, VaaniCallMetaSchema } from "@/lib/channels/vaani";
+import { cleanTranscript, inlinePhone, secondsFromVaaniDuration, normaliseVaani, vaaniEventName, verifyWebhookToken, VaaniCallMetaSchema } from "@/lib/channels/vaani";
 import { fetchVaaniCallMeta } from "@/lib/channels/vaaniApi";
 import { toE164 } from "@/lib/phone";
 import { isAfterHours } from "@/lib/hours";
@@ -104,6 +104,15 @@ describe("helpers", () => {
     expect(isAfterHours(new Date("2026-09-16T06:49:00Z"))).toBe(false); // 12:19 IST
     expect(isAfterHours(new Date("2026-09-16T13:30:00Z"))).toBe(true); // 19:00 IST boundary
     expect(isAfterHours(new Date("2026-09-16T04:30:00Z"))).toBe(false); // 10:00 IST boundary
+  });
+});
+
+describe("call duration units", () => {
+  it("reads real payloads (seconds) and documented ones (milliseconds)", () => {
+    expect(secondsFromVaaniDuration(146.8)).toBe(147); // seen in a real payload
+    expect(secondsFromVaaniDuration(16.59)).toBe(17);
+    expect(secondsFromVaaniDuration(55150.02)).toBe(55); // Vaani's documented example
+    expect(secondsFromVaaniDuration(330150)).toBe(330);
   });
 });
 
