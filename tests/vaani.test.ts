@@ -106,3 +106,21 @@ describe("helpers", () => {
     expect(isAfterHours(new Date("2026-09-16T04:30:00Z"))).toBe(false); // 10:00 IST boundary
   });
 });
+
+describe("real Vaani payloads carry explicit nulls", () => {
+  const real = {
+    event: "call_postprocessing", call_id: "webrtc-1791-abc", timestamp: "2026-10-10T19:10:00+00:00",
+    data: { room_name: "webrtc-1791-abc", call_id: "webrtc-1791-abc", call_duration: 41000, end_reason: "Call ended", summary: null, entities: null, dispositions: null, recording_url: null, transcript: "[19:09:20] AGENT: Hello, Aangan Studio.\n\n[19:09:25] USER: Hi, I want to redo my flat" },
+  };
+  it("accepts null entities / summary / dispositions / recording url", () => {
+    const n = normaliseVaani(real, null);
+    expect(n.external_id).toBe("webrtc-1791-abc");
+    expect(n.duration_sec).toBe(41);
+    expect(n.recording_url).toBeUndefined();
+    expect(n.transcript).toContain("Caller: Hi, I want to redo my flat");
+  });
+  it("accepts a missing transcript and a missing data block", () => {
+    expect(normaliseVaani({ ...real, data: { ...real.data, transcript: null } }, null).transcript).toBe("");
+    expect(normaliseVaani({ event: "call_postprocessing", call_id: "x", timestamp: null, data: null }, null).transcript).toBe("");
+  });
+});

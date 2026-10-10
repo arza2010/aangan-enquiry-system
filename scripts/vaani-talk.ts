@@ -38,7 +38,11 @@ const PAGE = `<!doctype html><meta charset="utf-8"><meta name="viewport" content
      if (!r.ok) throw new Error(JSON.stringify(s));
      room = new LivekitClient.Room();
      room.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => { if (track.kind === 'audio') { const el = track.attach(); el.autoplay = true; document.body.appendChild(el); log('Agent audio connected.'); } });
-     room.on(LivekitClient.RoomEvent.Disconnected, () => { log('Call ended. Check the front desk Telegram group in about a minute.'); document.getElementById('stop').disabled = true; document.getElementById('go').disabled = false; });
+     room.on(LivekitClient.RoomEvent.ParticipantConnected, (p) => log('Joined: ' + p.identity));
+     room.on(LivekitClient.RoomEvent.ParticipantDisconnected, (p) => log('Left: ' + p.identity));
+     room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (t) => log('Agent audio track stopped (' + t.kind + ')'));
+     room.on(LivekitClient.RoomEvent.ActiveSpeakersChanged, (sp) => { const n = sp.map((x) => x.identity === room.localParticipant.identity ? 'you' : 'agent').join('+'); if (n && n !== window.__last) { window.__last = n; log('speaking: ' + n); } });
+     room.on(LivekitClient.RoomEvent.Disconnected, (reason) => { log('Disconnected, reason code: ' + reason + '. Call ended. Check the front desk Telegram group in about a minute.'); document.getElementById('stop').disabled = true; document.getElementById('go').disabled = false; });
      await room.connect(s.connection_url, s.token);
      await room.localParticipant.setMicrophoneEnabled(true);
      log('Connected (room ' + s.room_name + '). Speak now.'); document.getElementById('stop').disabled = false;

@@ -34,7 +34,7 @@ function fakeDb(call: Record<string, unknown>) {
   return { db: { from: builder } as unknown as SupabaseClient, tables };
 }
 
-const call = { id: "c1", external_id: "v1", transcript: "Caller: hi", started_at: "2026-09-16T06:49:00Z" };
+const call = { id: "c1", external_id: "v1", transcript: "Agent: Hello, Aangan Studio.\nCaller: Hi, I want to redo my 3BHK flat in Baner.", started_at: "2026-09-16T06:49:00Z" };
 const base = {
   call_type: "new_enquiry", caller_name: "A", project_type: "home", location: "Baner", carpet_area_sqft: 900,
   bhk_or_rooms: "2BHK", scope: "full", budget_range: null, timeline: null, possession_status: "ready",
@@ -85,6 +85,15 @@ describe("analyseCall never loses a call", () => {
     await analyseCall(db, "c1", async () => { throw new Error("529 overloaded"); });
     expect(tables.leads[0]).toMatchObject({ status: "in_review", needs_review: true });
     expect(String(tables.leads[0].review_reason)).toContain("529");
+  });
+
+  it("a call with no conversation is saved and flagged, without calling the LLM", async () => {
+    const { db, tables } = fakeDb({ ...{}, calls: [{ ...call, transcript: "" }], leads: [], bookings: [], cost_events: [], settings: [] });
+    let called = false;
+    await analyseCall(db, "c1", async () => { called = true; return ok(); });
+    expect(called).toBe(false);
+    expect(tables.leads[0]).toMatchObject({ status: "in_review", needs_review: true });
+    expect(String(tables.leads[0].review_reason)).toContain("no conversation captured");
   });
 
   it("is idempotent: a second run does not create a second lead", async () => {

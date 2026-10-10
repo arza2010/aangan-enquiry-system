@@ -22,8 +22,10 @@ export async function analyseCall(
 
   let result: PostCallResult | null = null;
   let apiError: string | null = null;
+  const noConversation = String(call.transcript ?? "").replace(/\s+/g, " ").trim().length < 20;
   try {
-    result = await run({ transcript: call.transcript, startedAt: call.started_at });
+    // A call that ended before anyone spoke has nothing to classify: do not spend an LLM call or invent details.
+    if (!noConversation) result = await run({ transcript: call.transcript, startedAt: call.started_at });
   } catch (e) {
     apiError = e instanceof Error ? e.message : String(e);
   }
@@ -79,7 +81,9 @@ export async function analyseCall(
       call_id: callId,
       status: "in_review",
       needs_review: true,
-      review_reason: `extraction failed: ${apiError ?? (result && !result.ok ? result.error : "unknown")}`,
+      review_reason: noConversation
+        ? "no conversation captured (the call ended before the caller was heard): follow up by phone if a number is known"
+        : `extraction failed: ${apiError ?? (result && !result.ok ? result.error : "unknown")}`,
     };
   }
 
