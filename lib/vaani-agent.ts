@@ -35,7 +35,7 @@ export function buildAgentConfig(systemPrompt: string) {
     experience: {
       settings: {
         call_settings: { max_duration_enabled: true, max_call_duration: 6 },
-        idle_conversation_settings: { pulse_check: true, end_conversation_on_idle: true, idle_call_hangup_timeout: 20, idle_call_warning_timeout: 10 },
+        idle_conversation_settings: { pulse_check: true, end_conversation_on_idle: true, idle_call_hangup_timeout: 45, idle_call_warning_timeout: 25 },
       },
     },
   };
