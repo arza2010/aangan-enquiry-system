@@ -17,7 +17,8 @@
     "webhook:replay": "tsx scripts/replay-webhook.ts",
     "staff:create": "tsx scripts/create-staff.ts",
     "seed:demo": "tsx --conditions=react-server scripts/seed-demo.ts",
-    "db:migrate": "tsx scripts/db-migrate.ts"
+    "db:migrate": "tsx scripts/db-migrate.ts",
+    "vaani:talk": "tsx scripts/vaani-talk.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
