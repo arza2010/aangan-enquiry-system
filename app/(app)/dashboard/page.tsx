@@ -1,4 +1,4 @@
-import { requireStaff } from "@/lib/auth";
+import { getViewer } from "@/lib/auth";
 import { loadPeriod } from "@/lib/dashboard-data";
 import { computeMetrics, type Metrics } from "@/lib/metrics";
 import { periodsFor } from "@/lib/range";
@@ -36,7 +36,7 @@ function Bars({ items }: { items: { label: string; value: number; shown: string 
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ from?: string; to?: string }> }) {
   const { from, to } = await searchParams;
-  const { sb } = await requireStaff();
+  const { sb } = await getViewer();
   let periods;
   try { periods = periodsFor(new Date(), from, to); } catch { periods = periodsFor(new Date()); }
   const { data: settingRows } = await sb.from("settings").select("key, value, is_placeholder");

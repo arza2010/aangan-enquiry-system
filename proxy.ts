@@ -19,7 +19,7 @@ export async function proxy(req: NextRequest) {
     },
   });
   const { data } = await supabase.auth.getUser();
-  if (!data.user && !req.nextUrl.pathname.startsWith("/login")) {
+  if (!data.user && process.env.PUBLIC_DEMO !== "true" && !req.nextUrl.pathname.startsWith("/login")) {
     const login = req.nextUrl.clone();
     login.pathname = "/login";
     login.search = "";

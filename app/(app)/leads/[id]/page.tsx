@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireStaff } from "@/lib/auth";
+import { getViewer } from "@/lib/auth";
 import { ClassBadge, Flash, FormBtn, when } from "@/components/ui";
 import { actClose, actConsultDone, actConsultNoShow, actContacted, actLost, actSendToDesigner, actWon } from "../../actions";
 
 export default async function LeadPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ msg?: string; err?: string }> }) {
   const { id } = await params;
   const { msg, err } = await searchParams;
-  const { sb } = await requireStaff();
+  const { sb, readOnly } = await getViewer();
   const { data: lead } = await sb.from("leads").select("*, calls(caller_phone, started_at, transcript, duration_sec, after_hours, repeat_caller, recording_url)").eq("id", id).maybeSingle();
   if (!lead) notFound();
   const call = lead.calls as { caller_phone: string; started_at: string; transcript: string; duration_sec: number | null; after_hours: boolean; repeat_caller: boolean; recording_url: string | null } | null;
@@ -41,7 +41,7 @@ export default async function LeadPage({ params, searchParams }: { params: Promi
       {(bookings ?? []).map((b) => (
         <div className="card" key={b.id}>
           <b>{when(b.slot_start)}</b> <span className="badge">{b.status}</span>
-          {["provisional", "confirmed"].includes(b.status) && new Date(b.slot_start) < new Date() && (
+          {!readOnly && ["provisional", "confirmed"].includes(b.status) && new Date(b.slot_start) < new Date() && (
             <span className="actions" style={{ display: "inline-flex", marginLeft: 12 }}>
               <FormBtn action={actConsultDone} fields={{ booking: b.id, return: ret }}>Completed</FormBtn>
               <FormBtn action={actConsultNoShow} fields={{ booking: b.id, return: ret }}>No-show</FormBtn>
@@ -50,7 +50,7 @@ export default async function LeadPage({ params, searchParams }: { params: Promi
         </div>
       ))}
 
-      <h2>Outcome</h2>
+      {!readOnly && <><h2>Outcome</h2>
       <div className="actions">
         <FormBtn action={actContacted} fields={{ lead: id, return: ret }}>Mark contacted</FormBtn>
         <FormBtn action={actWon} fields={{ lead: id, return: ret }} className="primary">Won</FormBtn>
@@ -61,7 +61,7 @@ export default async function LeadPage({ params, searchParams }: { params: Promi
           <select name="designer" required defaultValue=""><option value="" disabled>{designer ? "Reassign to…" : "Send to designer…"}</option>{(designers ?? []).map((d) => <option key={d.id} value={d.id}>{d.name} ({d.specialisation})</option>)}</select>
           <button>Go</button>
         </form>
-      </div>
+      </div></>}
 
       <h2>Alerts</h2>
       <div className="card">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireStaff } from "@/lib/auth";
+import { getViewer } from "@/lib/auth";
 import { ClassBadge, Flash, FormBtn, when } from "@/components/ui";
 import { actCancelBooking, actClose, actContacted, actKeep, actSendToDesigner } from "../actions";
 
@@ -7,7 +7,7 @@ export const metadata = { title: "Review queue · Aangan Studio" };
 
 export default async function Queue({ searchParams }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
   const { msg, err } = await searchParams;
-  const { sb } = await requireStaff();
+  const { sb, readOnly } = await getViewer();
 
   const { data: leads } = await sb
     .from("leads")
@@ -45,7 +45,7 @@ export default async function Queue({ searchParams }: { searchParams: Promise<{ 
             {b && (
               <div className="held">
                 <span>📅 Consult {b.status === "provisional" ? "on hold" : "booked"}: <b>{when(b.slot_start)}</b></span>
-                {b.status === "provisional" && (
+                {!readOnly && b.status === "provisional" && (
                   <>
                     <FormBtn action={actKeep} fields={{ booking: b.id, return: ret }}>Keep</FormBtn>
                     <FormBtn action={actCancelBooking} fields={{ booking: b.id, return: ret }} className="danger">Cancel &amp; message caller</FormBtn>
@@ -59,7 +59,7 @@ export default async function Queue({ searchParams }: { searchParams: Promise<{ 
               {l.missing_info?.length ? <p className="muted small">Still to ask: {l.missing_info.join(", ")}</p> : null}
               <pre className="transcript">{call?.transcript || "No transcript"}</pre>
             </details>
-            <div className="actions">
+            {!readOnly && <div className="actions">
               <form action={actSendToDesigner}>
                 <input type="hidden" name="lead" value={l.id} />
                 <input type="hidden" name="return" value={ret} />
@@ -72,7 +72,8 @@ export default async function Queue({ searchParams }: { searchParams: Promise<{ 
               <FormBtn action={actContacted} fields={{ lead: l.id, return: ret }}>Mark contacted</FormBtn>
               <FormBtn action={actClose} fields={{ lead: l.id, return: ret }}>Close</FormBtn>
               <Link className="btn" href={`/leads/${l.id}`}>Open</Link>
-            </div>
+            </div>}
+            {readOnly && <div className="actions"><Link className="btn" href={`/leads/${l.id}`}>Open</Link></div>}
           </article>
         );
       })}

@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { requireStaff } from "@/lib/auth";
+import { getViewer } from "@/lib/auth";
 import { signOut } from "@/app/login/actions";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { staff, user } = await requireStaff();
+  const { staff, email, readOnly } = await getViewer();
   return (
     <>
       <div className="topbar">
@@ -13,8 +13,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Link href="/queue">Review queue</Link>
             <Link href="/dashboard">Dashboard</Link>
           </nav>
-          <span className="muted small">{staff.full_name ?? user.email} · {staff.role}</span>
-          <form action={signOut}><button className="small">Sign out</button></form>
+          {readOnly ? (
+            <>
+              <span className="muted small">Read-only demo view</span>
+              <Link className="btn small" href="/login">Staff sign in</Link>
+            </>
+          ) : (
+            <>
+              <span className="muted small">{staff?.full_name ?? email} · {staff?.role}</span>
+              <form action={signOut}><button className="small">Sign out</button></form>
+            </>
+          )}
         </div>
       </div>
       <div className="wrap">{children}</div>
