@@ -35,8 +35,16 @@ export function buildAgentConfig(systemPrompt: string) {
     experience: {
       settings: {
         call_settings: { max_duration_enabled: true, max_call_duration: 6 },
-        idle_conversation_settings: { pulse_check: true, end_conversation_on_idle: true, idle_call_hangup_timeout: 45, idle_call_warning_timeout: 25 },
+        // Vaani's defaults hang up after 10 s of initial silence and say "Hello?" after 3 s: far too impatient for real callers
+        // (and for browser tests). Callers think, and the greeting takes a few seconds to land.
+        idle_conversation_settings: {
+          pulse_check: true, end_conversation_on_idle: true, idle_call_hangup_timeout: 45, idle_call_warning_timeout: 25,
+          initial_idle_call_warning_timeout: 12, initial_idle_call_hungup_timeout: 40,
+        },
+        // Hang up on "too much background noise" only after many consecutive detections, not three.
+        vad_watcher: { empty_transcript_wait: 8, max_consecutive_noise: 8 },
       },
+      conversational_experience: { eagerness_to_speak: "balanced" },
     },
   };
 }
