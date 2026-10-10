@@ -88,7 +88,7 @@ describe("analyseCall never loses a call", () => {
   });
 
   it("a call with no conversation is saved and flagged, without calling the LLM", async () => {
-    const { db, tables } = fakeDb({ ...{}, calls: [{ ...call, transcript: "" }], leads: [], bookings: [], cost_events: [], settings: [] });
+    const { db, tables } = fakeDb({ ...call, transcript: "" });
     let called = false;
     await analyseCall(db, "c1", async () => { called = true; return ok(); });
     expect(called).toBe(false);
