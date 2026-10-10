@@ -107,6 +107,13 @@ describe("helpers", () => {
   });
 });
 
+describe("transcripts as real Vaani sends them", () => {
+  it("handles single-newline turns and an untimestamped welcome line", () => {
+    const raw = "AGENT: Hello, Aangan Studio, How can I help you today?\n[13:46:22] AGENT: Hello?\n[13:46:24] USER: I'd like to redo my\n[13:46:25] USER: apartment in three.";
+    expect(cleanTranscript(raw)).toBe("Agent: Hello, Aangan Studio, How can I help you today?\nAgent: Hello?\nCaller: I'd like to redo my\nCaller: apartment in three.");
+  });
+});
+
 describe("real Vaani payloads carry explicit nulls", () => {
   const real = {
     event: "call_postprocessing", call_id: "webrtc-1791-abc", timestamp: "2026-10-10T19:10:00+00:00",

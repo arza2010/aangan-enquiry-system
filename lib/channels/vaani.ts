@@ -64,11 +64,15 @@ export type VaaniCallMeta = z.infer<typeof VaaniCallMetaSchema>;
 /** Vaani's call-history timestamps are naive ISO strings; treat them as UTC (assumed, see open-questions). */
 const asUtc = (s: string) => new Date(/Z$|[+-]\d\d:?\d\d$/.test(s) ? s : `${s}Z`);
 
-/** "[13:33:14] AGENT: hi\n\n[13:33:19] USER: hello" -> "Agent: hi\nCaller: hello" (timestamps cost tokens, add nothing). */
+/**
+ * "[13:33:14] AGENT: hi\n[13:33:19] USER: hello" -> "Agent: hi\nCaller: hello".
+ * Vaani separates turns with a blank line in docs examples but with single newlines in real payloads, and the welcome
+ * line has no timestamp, so work line by line. Timestamps cost tokens and add nothing.
+ */
 export function cleanTranscript(t: string): string {
   return t
-    .split(/\n\s*\n/)
-    .map((line) => line.replace(/^\s*\[[\d:]+\]\s*/, "").replace(/^AGENT:/i, "Agent:").replace(/^USER:/i, "Caller:").trim())
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*\[[\d:.]+\]\s*/, "").replace(/^AGENT:/i, "Agent:").replace(/^USER:/i, "Caller:").trim())
     .filter(Boolean)
     .join("\n");
 }

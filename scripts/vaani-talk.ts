@@ -25,7 +25,7 @@ const PAGE = `<!doctype html><meta charset="utf-8"><meta name="viewport" content
 </style>
 <h1>Aangan Studio voice agent</h1>
 <p class="muted">Browser test. Allow the microphone when asked, then speak as a caller. Press End when you finish: the call then flows into the enquiry app.</p>
-<p><button id="go">Start call</button> <button id="stop" class="stop" disabled>End call</button></p>
+<p><button id="go">Start call</button> <button id="stop" class="stop" disabled>End call</button> <button id="audio" style="display:none;background:#9a5b00">Enable audio</button></p>
 <div id="log">Ready.</div>
 <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 <script>
@@ -37,18 +37,22 @@ const PAGE = `<!doctype html><meta charset="utf-8"><meta name="viewport" content
      const r = await fetch('/token', { method: 'POST' }); const s = await r.json();
      if (!r.ok) throw new Error(JSON.stringify(s));
      room = new LivekitClient.Room();
-     room.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => { if (track.kind === 'audio') { const el = track.attach(); el.autoplay = true; document.body.appendChild(el); log('Agent audio connected.'); } });
+     room.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => { if (track.kind === 'audio') { const el = track.attach(); el.autoplay = true; el.playsInline = true; document.body.appendChild(el); el.play().catch(() => {}); log('Agent audio connected.'); } });
+     // Browsers can block audio that starts without a click; LiveKit tells us and a click re-enables it.
+     room.on(LivekitClient.RoomEvent.AudioPlaybackStatusChanged, () => { document.getElementById('audio').style.display = room.canPlaybackAudio ? 'none' : 'inline-block'; if (!room.canPlaybackAudio) log('The browser blocked the agent audio: click "Enable audio".'); });
      room.on(LivekitClient.RoomEvent.ParticipantConnected, (p) => log('Joined: ' + p.identity));
      room.on(LivekitClient.RoomEvent.ParticipantDisconnected, (p) => log('Left: ' + p.identity));
      room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (t) => log('Agent audio track stopped (' + t.kind + ')'));
      room.on(LivekitClient.RoomEvent.ActiveSpeakersChanged, (sp) => { const n = sp.map((x) => x.identity === room.localParticipant.identity ? 'you' : 'agent').join('+'); if (n && n !== window.__last) { window.__last = n; log('speaking: ' + n); } });
      room.on(LivekitClient.RoomEvent.Disconnected, (reason) => { log('Disconnected, reason code: ' + reason + '. Call ended. Check the front desk Telegram group in about a minute.'); document.getElementById('stop').disabled = true; document.getElementById('go').disabled = false; });
      await room.connect(s.connection_url, s.token);
+     await room.startAudio().catch(() => {});
      await room.localParticipant.setMicrophoneEnabled(true);
      log('Connected (room ' + s.room_name + '). Speak now.'); document.getElementById('stop').disabled = false;
    } catch (e) { log('Could not start: ' + e.message); document.getElementById('go').disabled = false; }
  };
  document.getElementById('stop').onclick = () => room && room.disconnect();
+ document.getElementById('audio').onclick = async () => { await room.startAudio(); document.getElementById('audio').style.display = 'none'; log('Audio enabled.'); };
 </script>`;
 
 createServer(async (req, res) => {
